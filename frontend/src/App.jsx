@@ -173,7 +173,7 @@ export default function App() {
         onViewportChange={setViewport}
         heatmapPoints={heatmapPoints}
         hotspots={hotspots}
-        onSelectHotspot={setSelectedHotspot}
+        onSelectHotspot={h => { setSelectedHotspot(h); setPanelOpen(true) }}
         selectedHotspot={selectedHotspot}
         speciesSightings={speciesSightings}
       />

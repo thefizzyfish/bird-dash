@@ -86,31 +86,39 @@ export default function SidePanel({ aggregatedObs, selectedHotspot, speciesList,
 
   if (isMobile) {
     return (
-      <>
-        {/* Bottom sheet */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 20,
+        display: 'flex', flexDirection: 'column',
+      }}>
+        {/* Persistent handle — always visible, always tappable */}
+        <div
+          onClick={onToggle}
+          style={{
+            background: 'rgba(15,23,42,0.97)',
+            borderTop: '1px solid #334155',
+            borderRadius: '12px 12px 0 0',
+            padding: '10px 16px 8px',
+            cursor: 'pointer',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+          }}
+        >
+          <div style={{ width: 36, height: 4, background: '#475569', borderRadius: 2 }} />
+          <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>
+            {selectedHotspot
+              ? selectedHotspot.locName
+              : `${aggregatedObs.length} bird${aggregatedObs.length !== 1 ? 's' : ''} ${isOpen ? '▼' : '▲'}`
+            }
+          </div>
+        </div>
+
+        {/* Collapsible content */}
         <div style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 20,
-          height: isOpen ? '55vh' : 0,
+          height: isOpen ? '52vh' : 0,
           transition: 'height 0.3s ease',
           background: 'rgba(15,23,42,0.97)',
-          borderTop: '1px solid #334155',
-          borderRadius: '12px 12px 0 0',
-          display: 'flex', flexDirection: 'column',
           overflow: 'hidden',
         }}>
-          {/* Drag handle / header */}
-          <div
-            onClick={onToggle}
-            style={{
-              flexShrink: 0, padding: '10px 16px 8px',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              cursor: 'pointer', borderBottom: '1px solid #1e293b',
-            }}
-          >
-            <div style={{ width: 36, height: 4, background: '#334155', borderRadius: 2, margin: '0 auto' }} />
-          </div>
-          {/* Scrollable content */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+          <div style={{ height: '52vh', overflowY: 'auto', padding: '12px 16px' }}>
             <PanelContent
               aggregatedObs={aggregatedObs}
               selectedHotspot={selectedHotspot}
@@ -119,23 +127,7 @@ export default function SidePanel({ aggregatedObs, selectedHotspot, speciesList,
             />
           </div>
         </div>
-
-        {/* Floating toggle button when panel is closed */}
-        {!isOpen && (
-          <button
-            onClick={onToggle}
-            style={{
-              position: 'fixed', bottom: 20, right: 20, zIndex: 20,
-              background: '#1e293b', color: '#f1f5f9',
-              border: '1px solid #334155', borderRadius: 24,
-              padding: '10px 18px', fontSize: 13, fontWeight: 600,
-              cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-            }}
-          >
-            Birds {aggregatedObs.length > 0 ? `(${aggregatedObs.length})` : ''}
-          </button>
-        )}
-      </>
+      </div>
     )
   }
 
