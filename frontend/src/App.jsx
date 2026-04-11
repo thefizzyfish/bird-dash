@@ -44,6 +44,7 @@ export default function App() {
   const [mode, setMode] = useState('rare')  // 'rare' | 'all'
   const [loading, setLoading] = useState(false)
   const [selectedSpecies, setSelectedSpecies] = useState(null)
+  const [panelOpen, setPanelOpen] = useState(true)
   const [speciesSightings, setSpeciesSightings] = useState([])
   const debounceRef = useRef(null)
   const speciesDebounceRef = useRef(null)
@@ -218,6 +219,8 @@ export default function App() {
         selectedHotspot={selectedHotspot}
         speciesList={speciesList}
         onClose={() => setSelectedHotspot(null)}
+        isOpen={panelOpen}
+        onToggle={() => setPanelOpen(o => !o)}
       />
     </div>
   )

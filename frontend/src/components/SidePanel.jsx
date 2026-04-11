@@ -1,12 +1,7 @@
 import { useBirdPhoto } from '../hooks/useBirdPhoto.js'
+import { useIsMobile } from '../hooks/useIsMobile.js'
 
-const styles = {
-  panel: {
-    position: 'absolute', top: 0, right: 0, bottom: 0, width: 320,
-    background: 'rgba(15,23,42,0.93)', color: '#f1f5f9',
-    overflowY: 'auto', padding: 16, zIndex: 10,
-    borderLeft: '1px solid #1e293b',
-  },
+const s = {
   backBtn: {
     background: 'none', border: 'none', color: '#34d399',
     fontSize: 13, cursor: 'pointer', padding: 0, marginBottom: 12,
@@ -30,26 +25,17 @@ function formatDate(obsDt) {
 function BirdRow({ obs }) {
   const photo = useBirdPhoto(obs.sciName)
   return (
-    <div style={{ ...styles.item, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-      <div style={{
-        width: 48, height: 48, borderRadius: 4, flexShrink: 0,
-        background: '#1e293b', overflow: 'hidden',
-      }}>
-        {photo && (
-          <img src={photo} alt={obs.comName}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        )}
+    <div style={{ ...s.item, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+      <div style={{ width: 48, height: 48, borderRadius: 4, flexShrink: 0, background: '#1e293b', overflow: 'hidden' }}>
+        {photo && <img src={photo} alt={obs.comName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
       </div>
       <div style={{ minWidth: 0 }}>
-        <div style={styles.name}>{obs.comName}</div>
-        <div style={styles.sci}>{obs.sciName}</div>
-        <div style={styles.meta}>
-          {obs.totalSeen} seen · {obs.locationCount} {obs.locationCount === 1 ? 'location' : 'locations'}
-        </div>
-        <div style={{ ...styles.meta, color: '#64748b' }}>Last: {formatDate(obs.obsDt)}</div>
+        <div style={s.name}>{obs.comName}</div>
+        <div style={s.sci}>{obs.sciName}</div>
+        <div style={s.meta}>{obs.totalSeen} seen · {obs.locationCount} {obs.locationCount === 1 ? 'location' : 'locations'}</div>
+        <div style={{ ...s.meta, color: '#64748b' }}>Last: {formatDate(obs.obsDt)}</div>
         {obs.subId && (
-          <a href={`https://ebird.org/checklist/${obs.subId}`}
-            target="_blank" rel="noreferrer" style={styles.link}>
+          <a href={`https://ebird.org/checklist/${obs.subId}`} target="_blank" rel="noreferrer" style={s.link}>
             Latest checklist →
           </a>
         )}
@@ -58,48 +44,139 @@ function BirdRow({ obs }) {
   )
 }
 
-export default function SidePanel({ aggregatedObs, selectedHotspot, speciesList, onClose }) {
-
+function PanelContent({ aggregatedObs, selectedHotspot, speciesList, onClose }) {
   if (selectedHotspot) {
     return (
-      <div style={styles.panel}>
-        <button style={styles.backBtn} onClick={onClose}>← All Rare Birds</button>
-        <div style={styles.hotspotTitle}>
-          <a
-            href={`https://ebird.org/hotspot/${selectedHotspot.locId}`}
-            target="_blank" rel="noreferrer"
-            style={{ color: '#34d399', textDecoration: 'none' }}
-          >
+      <>
+        <button style={s.backBtn} onClick={onClose}>← All Birds</button>
+        <div style={s.hotspotTitle}>
+          <a href={`https://ebird.org/hotspot/${selectedHotspot.locId}`}
+            target="_blank" rel="noreferrer" style={{ color: '#34d399', textDecoration: 'none' }}>
             {selectedHotspot.locName}
           </a>
         </div>
-        <div style={styles.hotspotMeta}>
-          {selectedHotspot.numSpeciesAllTime} species all time
-        </div>
-        <div style={styles.heading}>RECENT SPECIES</div>
+        <div style={s.hotspotMeta}>{selectedHotspot.numSpeciesAllTime} species all time</div>
+        <div style={s.heading}>RECENT SPECIES</div>
         {speciesList.length === 0
-          ? <p style={styles.empty}>No recent sightings</p>
-          : speciesList.map((s, i) => (
-            <div key={i} style={styles.item}>
-              <div style={styles.name}>{s.comName}</div>
-              <div style={styles.sci}>{s.sciName}</div>
-              <div style={styles.meta}>
-                {formatDate(s.obsDt)}{s.howMany ? ` · ${s.howMany} seen` : ''}
-              </div>
+          ? <p style={s.empty}>No recent sightings</p>
+          : speciesList.map((sp, i) => (
+            <div key={i} style={s.item}>
+              <div style={s.name}>{sp.comName}</div>
+              <div style={s.sci}>{sp.sciName}</div>
+              <div style={s.meta}>{formatDate(sp.obsDt)}{sp.howMany ? ` · ${sp.howMany} seen` : ''}</div>
             </div>
           ))
         }
-      </div>
+      </>
+    )
+  }
+  return (
+    <>
+      <div style={s.heading}>BIRDS ({aggregatedObs.length})</div>
+      {aggregatedObs.length === 0
+        ? <p style={s.empty}>Pan the map to load sightings</p>
+        : aggregatedObs.map((obs, i) => <BirdRow key={obs.speciesCode ?? i} obs={obs} />)
+      }
+    </>
+  )
+}
+
+export default function SidePanel({ aggregatedObs, selectedHotspot, speciesList, onClose, isOpen, onToggle }) {
+  const isMobile = useIsMobile()
+
+  if (isMobile) {
+    return (
+      <>
+        {/* Bottom sheet */}
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 20,
+          height: isOpen ? '55vh' : 0,
+          transition: 'height 0.3s ease',
+          background: 'rgba(15,23,42,0.97)',
+          borderTop: '1px solid #334155',
+          borderRadius: '12px 12px 0 0',
+          display: 'flex', flexDirection: 'column',
+          overflow: 'hidden',
+        }}>
+          {/* Drag handle / header */}
+          <div
+            onClick={onToggle}
+            style={{
+              flexShrink: 0, padding: '10px 16px 8px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              cursor: 'pointer', borderBottom: '1px solid #1e293b',
+            }}
+          >
+            <div style={{ width: 36, height: 4, background: '#334155', borderRadius: 2, margin: '0 auto' }} />
+          </div>
+          {/* Scrollable content */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+            <PanelContent
+              aggregatedObs={aggregatedObs}
+              selectedHotspot={selectedHotspot}
+              speciesList={speciesList}
+              onClose={onClose}
+            />
+          </div>
+        </div>
+
+        {/* Floating toggle button when panel is closed */}
+        {!isOpen && (
+          <button
+            onClick={onToggle}
+            style={{
+              position: 'fixed', bottom: 20, right: 20, zIndex: 20,
+              background: '#1e293b', color: '#f1f5f9',
+              border: '1px solid #334155', borderRadius: 24,
+              padding: '10px 18px', fontSize: 13, fontWeight: 600,
+              cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+            }}
+          >
+            Birds {aggregatedObs.length > 0 ? `(${aggregatedObs.length})` : ''}
+          </button>
+        )}
+      </>
     )
   }
 
+  // Desktop: right-side panel with collapse tab
   return (
-    <div style={styles.panel}>
-      <div style={styles.heading}>RARE BIRDS ({aggregatedObs.length} species)</div>
-      {aggregatedObs.length === 0
-        ? <p style={styles.empty}>Pan the map to load sightings</p>
-        : aggregatedObs.map((obs, i) => <BirdRow key={obs.speciesCode ?? i} obs={obs} />)
-      }
+    <div style={{
+      position: 'absolute', top: 0, right: 0, bottom: 0, zIndex: 10,
+      display: 'flex', alignItems: 'stretch',
+    }}>
+      {/* Collapse tab */}
+      <button
+        onClick={onToggle}
+        style={{
+          alignSelf: 'center',
+          background: '#1e293b', color: '#94a3b8',
+          border: '1px solid #334155', borderRight: 'none',
+          borderRadius: '6px 0 0 6px',
+          padding: '12px 4px', cursor: 'pointer', fontSize: 11,
+          writingMode: 'vertical-rl',
+        }}
+      >
+        {isOpen ? '▶' : '◀'}
+      </button>
+
+      {/* Panel body */}
+      <div style={{
+        width: isOpen ? 320 : 0,
+        transition: 'width 0.25s ease',
+        overflow: 'hidden',
+        background: 'rgba(15,23,42,0.93)',
+        borderLeft: '1px solid #1e293b',
+      }}>
+        <div style={{ width: 320, height: '100%', overflowY: 'auto', padding: 16, color: '#f1f5f9' }}>
+          <PanelContent
+            aggregatedObs={aggregatedObs}
+            selectedHotspot={selectedHotspot}
+            speciesList={speciesList}
+            onClose={onClose}
+          />
+        </div>
+      </div>
     </div>
   )
 }
