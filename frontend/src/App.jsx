@@ -45,6 +45,7 @@ export default function App() {
   const [mode, setMode] = useState('rare')  // 'rare' | 'all'
   const [loading, setLoading] = useState(false)
   const [selectedSpecies, setSelectedSpecies] = useState(null)
+  const [selectedRareLocation, setSelectedRareLocation] = useState(null)
   const [panelOpen, setPanelOpen] = useState(true)
   const [speciesSightings, setSpeciesSightings] = useState([])
   const debounceRef = useRef(null)
@@ -95,6 +96,21 @@ export default function App() {
     }, 500)
     return () => clearTimeout(speciesDebounceRef.current)
   }, [selectedSpecies, viewport, daysBack])
+
+  // One marker per location with list of rare species seen there
+  const rareSightingPoints = useMemo(() => {
+    const byLoc = {}
+    for (const obs of notableObs) {
+      const key = obs.locId || `${obs.lat},${obs.lng}`
+      if (!byLoc[key]) {
+        byLoc[key] = { lat: obs.lat, lng: obs.lng, locName: obs.locName, locId: obs.locId, species: [] }
+      }
+      if (!byLoc[key].species.find(s => s.speciesCode === obs.speciesCode)) {
+        byLoc[key].species.push({ comName: obs.comName, sciName: obs.sciName, obsDt: obs.obsDt, howMany: obs.howMany, subId: obs.subId })
+      }
+    }
+    return Object.values(byLoc)
+  }, [notableObs])
 
   // One point per location, weight = total individuals seen there
   const heatmapPoints = useMemo(() => {
@@ -157,6 +173,14 @@ export default function App() {
     }]
   }, [selectedSpecies, speciesSightings, aggregatedObs])
 
+  function handleRandom() {
+    if (hotspots.length === 0) return
+    const spot = hotspots[Math.floor(Math.random() * hotspots.length)]
+    setViewport(v => ({ ...v, latitude: spot.lat, longitude: spot.lng, zoom: 13 }))
+    setSelectedHotspot(spot)
+    setPanelOpen(true)
+  }
+
   function handleNearMe() {
     if (!navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
@@ -174,13 +198,16 @@ export default function App() {
         onViewportChange={setViewport}
         heatmapPoints={heatmapPoints}
         hotspots={hotspots}
-        onSelectHotspot={h => { setSelectedHotspot(h); setPanelOpen(true) }}
+        onSelectHotspot={h => { setSelectedHotspot(h); setSelectedRareLocation(null); setPanelOpen(true) }}
+        rareSightingPoints={rareSightingPoints}
+        onSelectRareLocation={loc => { setSelectedRareLocation(loc); setSelectedHotspot(null); setPanelOpen(true) }}
         selectedHotspot={selectedHotspot}
         speciesSightings={speciesSightings}
       />
 
       <div style={styles.controls}>
         <button style={styles.button} onClick={handleNearMe}>Near Me</button>
+        <button style={styles.button} onClick={handleRandom} disabled={hotspots.length === 0}>Random</button>
         <LocationSearch onSelect={({ lat, lng }) => setViewport(v => ({ ...v, latitude: lat, longitude: lng, zoom: 11 }))} />
         <div style={{ display: 'flex', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, overflow: 'hidden' }}>
           {['rare', 'all'].map(m => (
@@ -220,7 +247,8 @@ export default function App() {
         aggregatedObs={filteredObs}
         selectedHotspot={selectedHotspot}
         speciesList={speciesList}
-        onClose={() => setSelectedHotspot(null)}
+        onClose={() => { setSelectedHotspot(null); setSelectedRareLocation(null) }}
+        selectedRareLocation={selectedRareLocation}
         isOpen={panelOpen}
         onToggle={() => setPanelOpen(o => !o)}
       />

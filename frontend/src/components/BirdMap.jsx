@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import Map, { useControl } from 'react-map-gl/maplibre'
 import { MapboxOverlay } from '@deck.gl/mapbox'
 import { HeatmapLayer } from '@deck.gl/aggregation-layers'
@@ -14,15 +15,19 @@ const HEATMAP_COLORS = [
   [255, 0,   0,   255],
 ]
 
-function DeckGLOverlay({ layers }) {
+function DeckGLOverlay({ layers, overlayRef }) {
   const overlay = useControl(() => new MapboxOverlay({ interleaved: false }))
+  overlayRef.current = overlay
   overlay.setProps({ layers })
   return null
 }
 
 export default function BirdMap({
-  viewport, onViewportChange, heatmapPoints, hotspots, onSelectHotspot, selectedHotspot, speciesSightings
+  viewport, onViewportChange, heatmapPoints, hotspots, onSelectHotspot, selectedHotspot,
+  speciesSightings, rareSightingPoints, onSelectRareLocation
 }) {
+  const overlayRef = useRef(null)
+
   const layers = [
     new HeatmapLayer({
       id: 'heatmap',
@@ -48,8 +53,19 @@ export default function BirdMap({
       getLineColor: [0, 0, 0, 80],
       lineWidthMinPixels: 1,
       pickable: true,
-      onClick: info => info.object && onSelectHotspot(info.object),
       updateTriggers: { getFillColor: selectedHotspot?.locId },
+    }),
+    new ScatterplotLayer({
+      id: 'rare-sightings',
+      data: rareSightingPoints,
+      getPosition: d => [d.lng, d.lat],
+      radiusUnits: 'pixels',
+      getRadius: d => Math.min(5 + d.species.length * 2, 14),
+      getFillColor: [239, 68, 68, 230],
+      stroked: true,
+      getLineColor: [255, 255, 255, 180],
+      lineWidthMinPixels: 1.5,
+      pickable: true,
     }),
     new ScatterplotLayer({
       id: 'species-sightings',
@@ -65,14 +81,24 @@ export default function BirdMap({
     }),
   ]
 
+  function handleMapClick(e) {
+    const overlay = overlayRef.current
+    if (!overlay) return
+    const info = overlay.pickObject({ x: e.point.x, y: e.point.y, radius: 5 })
+    if (!info?.object) return
+    if (info.layer?.id === 'rare-sightings') onSelectRareLocation(info.object)
+    else if (info.layer?.id === 'hotspots') onSelectHotspot(info.object)
+  }
+
   return (
     <Map
       {...viewport}
       mapStyle={STYLE_URL}
       onMove={e => onViewportChange(e.viewState)}
+      onClick={handleMapClick}
       style={{ width: '100%', height: '100%' }}
     >
-      <DeckGLOverlay layers={layers} />
+      <DeckGLOverlay layers={layers} overlayRef={overlayRef} />
     </Map>
   )
 }

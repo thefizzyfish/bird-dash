@@ -58,7 +58,35 @@ function PanelFooter() {
   )
 }
 
-function PanelContent({ aggregatedObs, selectedHotspot, speciesList, onClose }) {
+function PanelContent({ aggregatedObs, selectedHotspot, speciesList, selectedRareLocation, onClose }) {
+  if (selectedRareLocation) {
+    return (
+      <>
+        <button style={s.backBtn} onClick={onClose}>← All Birds</button>
+        <div style={{ ...s.hotspotTitle, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ color: '#ef4444', fontSize: 10 }}>●</span>
+          {selectedRareLocation.locName}
+        </div>
+        <div style={s.hotspotMeta}>{selectedRareLocation.species.length} rare species</div>
+        <div style={s.heading}>RARE SIGHTINGS</div>
+        {selectedRareLocation.species.map((sp, i) => (
+          <div key={i} style={s.item}>
+            <div style={s.name}>{sp.comName}</div>
+            <div style={s.sci}>{sp.sciName}</div>
+            <div style={s.meta}>{formatDate(sp.obsDt)}{sp.howMany ? ` · ${sp.howMany} seen` : ''}</div>
+            {sp.subId && (
+              <a href={`https://ebird.org/checklist/${sp.subId}`}
+                target="_blank" rel="noreferrer" style={s.link}>
+                View checklist →
+              </a>
+            )}
+          </div>
+        ))}
+        <PanelFooter />
+      </>
+    )
+  }
+
   if (selectedHotspot) {
     return (
       <>
@@ -97,7 +125,7 @@ function PanelContent({ aggregatedObs, selectedHotspot, speciesList, onClose }) 
   )
 }
 
-export default function SidePanel({ aggregatedObs, selectedHotspot, speciesList, onClose, isOpen, onToggle }) {
+export default function SidePanel({ aggregatedObs, selectedHotspot, speciesList, selectedRareLocation, onClose, isOpen, onToggle }) {
   const isMobile = useIsMobile()
 
   if (isMobile) {
@@ -120,9 +148,11 @@ export default function SidePanel({ aggregatedObs, selectedHotspot, speciesList,
         >
           <div style={{ width: 36, height: 4, background: '#475569', borderRadius: 2 }} />
           <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>
-            {selectedHotspot
-              ? selectedHotspot.locName
-              : `${aggregatedObs.length} bird${aggregatedObs.length !== 1 ? 's' : ''} ${isOpen ? '▼' : '▲'}`
+            {selectedRareLocation
+              ? `📍 ${selectedRareLocation.locName}`
+              : selectedHotspot
+                ? selectedHotspot.locName
+                : `${aggregatedObs.length} bird${aggregatedObs.length !== 1 ? 's' : ''} ${isOpen ? '▼' : '▲'}`
             }
           </div>
         </div>
@@ -139,6 +169,7 @@ export default function SidePanel({ aggregatedObs, selectedHotspot, speciesList,
               aggregatedObs={aggregatedObs}
               selectedHotspot={selectedHotspot}
               speciesList={speciesList}
+              selectedRareLocation={selectedRareLocation}
               onClose={onClose}
             />
           </div>
@@ -181,6 +212,7 @@ export default function SidePanel({ aggregatedObs, selectedHotspot, speciesList,
             aggregatedObs={aggregatedObs}
             selectedHotspot={selectedHotspot}
             speciesList={speciesList}
+            selectedRareLocation={selectedRareLocation}
             onClose={onClose}
           />
         </div>
