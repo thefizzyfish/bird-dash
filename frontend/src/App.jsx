@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import BirdMap from './components/BirdMap.jsx'
 import SidePanel from './components/SidePanel.jsx'
 import SpeciesSearch from './components/SpeciesSearch.jsx'
+import LocationSearch from './components/LocationSearch.jsx'
 import { fetchNotable, fetchHotspots, fetchSpecies, fetchRecentBySpecies, fetchRecentObs } from './api/ebird.js'
 
 const DEFAULT_VIEWPORT = {
@@ -180,6 +181,7 @@ export default function App() {
 
       <div style={styles.controls}>
         <button style={styles.button} onClick={handleNearMe}>Near Me</button>
+        <LocationSearch onSelect={({ lat, lng }) => setViewport(v => ({ ...v, latitude: lat, longitude: lng, zoom: 11 }))} />
         <div style={{ display: 'flex', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, overflow: 'hidden' }}>
           {['rare', 'all'].map(m => (
             <button

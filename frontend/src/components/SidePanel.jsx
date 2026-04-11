@@ -44,6 +44,20 @@ function BirdRow({ obs }) {
   )
 }
 
+function PanelFooter() {
+  return (
+    <div style={{ marginTop: 20, paddingTop: 12, borderTop: '1px solid #1e293b', textAlign: 'center' }}>
+      <a
+        href="https://www.instagram.com/stork_n_stout"
+        target="_blank" rel="noreferrer"
+        style={{ fontSize: 12, color: '#64748b', textDecoration: 'none' }}
+      >
+        📸 @stork_n_stout
+      </a>
+    </div>
+  )
+}
+
 function PanelContent({ aggregatedObs, selectedHotspot, speciesList, onClose }) {
   if (selectedHotspot) {
     return (
@@ -67,6 +81,7 @@ function PanelContent({ aggregatedObs, selectedHotspot, speciesList, onClose }) 
             </div>
           ))
         }
+        <PanelFooter />
       </>
     )
   }
@@ -77,6 +92,7 @@ function PanelContent({ aggregatedObs, selectedHotspot, speciesList, onClose }) 
         ? <p style={s.empty}>Pan the map to load sightings</p>
         : aggregatedObs.map((obs, i) => <BirdRow key={obs.speciesCode ?? i} obs={obs} />)
       }
+      <PanelFooter />
     </>
   )
 }
