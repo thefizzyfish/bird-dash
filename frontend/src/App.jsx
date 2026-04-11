@@ -11,6 +11,15 @@ const DEFAULT_VIEWPORT = {
   zoom: 10
 }
 
+function getInitialViewport() {
+  const p = new URLSearchParams(location.search)
+  const lat = parseFloat(p.get('lat'))
+  const lng = parseFloat(p.get('lng'))
+  const zoom = parseFloat(p.get('zoom'))
+  if (!isNaN(lat) && !isNaN(lng) && !isNaN(zoom)) return { latitude: lat, longitude: lng, zoom }
+  return DEFAULT_VIEWPORT
+}
+
 function distFromZoom(zoom) {
   if (zoom < 8)  return 50
   if (zoom < 10) return 30
@@ -36,7 +45,7 @@ const styles = {
 }
 
 export default function App() {
-  const [viewport, setViewport] = useState(DEFAULT_VIEWPORT)
+  const [viewport, setViewport] = useState(getInitialViewport)
   const [notableObs, setNotableObs] = useState([])
   const [hotspots, setHotspots] = useState([])
   const [selectedHotspot, setSelectedHotspot] = useState(null)
@@ -72,7 +81,11 @@ export default function App() {
 
   useEffect(() => {
     clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => loadData(viewport, daysBack, mode), 500)
+    debounceRef.current = setTimeout(() => {
+      const { latitude: lat, longitude: lng, zoom } = viewport
+      history.replaceState(null, '', `?lat=${lat.toFixed(4)}&lng=${lng.toFixed(4)}&zoom=${zoom.toFixed(2)}`)
+      loadData(viewport, daysBack, mode)
+    }, 500)
     return () => clearTimeout(debounceRef.current)
   }, [viewport, daysBack, mode, loadData])
 
