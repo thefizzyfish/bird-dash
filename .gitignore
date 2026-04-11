@@ -1,0 +1,5 @@
+.env
+backend/server
+backend/static/*
+!backend/static/index.html
+node_modules/
