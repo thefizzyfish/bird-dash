@@ -7,10 +7,14 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"time"
 
 	"bird-dash/cache"
 )
+
+// Scientific names: "Genus species" or "Genus species subspecies", letters and spaces only
+var validSciName = regexp.MustCompile(`^[A-Za-z]+(?: [A-Za-z]+){1,3}$`)
 
 type PhotoHandler struct {
 	cache      *cache.Cache
@@ -30,8 +34,8 @@ type photoResponse struct {
 
 func (h *PhotoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	sciName := r.URL.Query().Get("sciName")
-	if sciName == "" {
-		http.Error(w, "missing sciName", http.StatusBadRequest)
+	if sciName == "" || len(sciName) > 100 || !validSciName.MatchString(sciName) {
+		http.Error(w, "invalid sciName", http.StatusBadRequest)
 		return
 	}
 

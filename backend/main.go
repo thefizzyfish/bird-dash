@@ -11,6 +11,9 @@ import (
 	"bird-dash/cache"
 	"bird-dash/ebird"
 	"bird-dash/handlers"
+	"bird-dash/ratelimit"
+
+	"golang.org/x/time/rate"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -37,13 +40,18 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	r.Get("/api/notable", handlers.NewNotable(eb, c).ServeHTTP)
-	r.Get("/api/hotspots", handlers.NewHotspots(eb, c).ServeHTTP)
-	r.Get("/api/species", handlers.NewSpecies(eb, c).ServeHTTP)
-	r.Get("/api/photo", handlers.NewPhoto(c).ServeHTTP)
-	r.Get("/api/taxonomy", handlers.NewTaxonomy(eb, c).ServeHTTP)
-	r.Get("/api/recent", handlers.NewRecentObs(eb, c).ServeHTTP)
-	r.Get("/api/recent/species", handlers.NewRecentBySpecies(eb, c).ServeHTTP)
+	// API routes — rate limited to 10 req/s per IP, burst of 20
+	rl := ratelimit.New(rate.Limit(10), 20)
+	r.Group(func(r chi.Router) {
+		r.Use(rl.Handler)
+		r.Get("/api/notable", handlers.NewNotable(eb, c).ServeHTTP)
+		r.Get("/api/hotspots", handlers.NewHotspots(eb, c).ServeHTTP)
+		r.Get("/api/species", handlers.NewSpecies(eb, c).ServeHTTP)
+		r.Get("/api/photo", handlers.NewPhoto(c).ServeHTTP)
+		r.Get("/api/taxonomy", handlers.NewTaxonomy(eb, c).ServeHTTP)
+		r.Get("/api/recent", handlers.NewRecentObs(eb, c).ServeHTTP)
+		r.Get("/api/recent/species", handlers.NewRecentBySpecies(eb, c).ServeHTTP)
+	})
 
 	// Serve the React SPA for all non-API routes
 	static, err := fs.Sub(staticFiles, "static")
