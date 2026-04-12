@@ -194,14 +194,6 @@ export default function App() {
     }]
   }, [selectedSpecies, speciesSightings, aggregatedObs])
 
-  function handleRandom() {
-    if (hotspots.length === 0) return
-    const spot = hotspots[Math.floor(Math.random() * hotspots.length)]
-    setViewport(v => ({ ...v, latitude: spot.lat, longitude: spot.lng, zoom: 13 }))
-    setSelectedHotspot(spot)
-    setPanelOpen(true)
-  }
-
   function handleNearMe() {
     if (!navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
@@ -233,7 +225,6 @@ export default function App() {
         {controlsOpen && (
           <div style={styles.controlsBody}>
             <button style={styles.button} onClick={handleNearMe}>Near Me</button>
-            <button style={styles.button} onClick={handleRandom} disabled={hotspots.length === 0}>Random</button>
             <LocationSearch onSelect={({ lat, lng }) => setViewport(v => ({ ...v, latitude: lat, longitude: lng, zoom: 11 }))} />
             <div style={{ display: 'flex', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, overflow: 'hidden' }}>
               {['rare', 'all'].map(m => (
