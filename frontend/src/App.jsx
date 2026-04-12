@@ -31,7 +31,14 @@ const styles = {
   root: { width: '100vw', height: '100vh', position: 'relative' },
   controls: {
     position: 'absolute', top: 12, left: 12, zIndex: 10,
-    display: 'flex', gap: 8, flexDirection: 'column', alignItems: 'flex-start'
+    display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6,
+  },
+  toggleBtn: {
+    background: '#1e293b', color: '#f1f5f9', border: '1px solid #334155',
+    borderRadius: 6, padding: '6px 10px', fontSize: 16, cursor: 'pointer', lineHeight: 1,
+  },
+  controlsBody: {
+    display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start',
   },
   button: {
     background: '#1e293b', color: '#f1f5f9', border: '1px solid #334155',
@@ -56,6 +63,7 @@ export default function App() {
   const [selectedSpecies, setSelectedSpecies] = useState(null)
   const [selectedRareLocation, setSelectedRareLocation] = useState(null)
   const [panelOpen, setPanelOpen] = useState(true)
+  const [controlsOpen, setControlsOpen] = useState(true)
   const [speciesSightings, setSpeciesSightings] = useState([])
   const debounceRef = useRef(null)
   const speciesDebounceRef = useRef(null)
@@ -219,41 +227,48 @@ export default function App() {
       />
 
       <div style={styles.controls}>
-        <button style={styles.button} onClick={handleNearMe}>Near Me</button>
-        <button style={styles.button} onClick={handleRandom} disabled={hotspots.length === 0}>Random</button>
-        <LocationSearch onSelect={({ lat, lng }) => setViewport(v => ({ ...v, latitude: lat, longitude: lng, zoom: 11 }))} />
-        <div style={{ display: 'flex', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, overflow: 'hidden' }}>
-          {['rare', 'all'].map(m => (
-            <button
-              key={m}
-              onClick={() => { setMode(m); setSelectedSpecies(null); setSpeciesSightings([]) }}
-              style={{
-                ...styles.button,
-                border: 'none', borderRadius: 0,
-                background: mode === m ? '#334155' : 'transparent',
-                color: mode === m ? '#f1f5f9' : '#64748b',
-              }}
+        <button style={styles.toggleBtn} onClick={() => setControlsOpen(o => !o)}>
+          {controlsOpen ? '✕' : '☰'}
+        </button>
+        {controlsOpen && (
+          <div style={styles.controlsBody}>
+            <button style={styles.button} onClick={handleNearMe}>Near Me</button>
+            <button style={styles.button} onClick={handleRandom} disabled={hotspots.length === 0}>Random</button>
+            <LocationSearch onSelect={({ lat, lng }) => setViewport(v => ({ ...v, latitude: lat, longitude: lng, zoom: 11 }))} />
+            <div style={{ display: 'flex', background: '#1e293b', border: '1px solid #334155', borderRadius: 6, overflow: 'hidden' }}>
+              {['rare', 'all'].map(m => (
+                <button
+                  key={m}
+                  onClick={() => { setMode(m); setSelectedSpecies(null); setSpeciesSightings([]) }}
+                  style={{
+                    ...styles.button,
+                    border: 'none', borderRadius: 0,
+                    background: mode === m ? '#334155' : 'transparent',
+                    color: mode === m ? '#f1f5f9' : '#64748b',
+                  }}
+                >
+                  {m === 'rare' ? 'Notable' : 'All Recent'}
+                </button>
+              ))}
+            </div>
+            <SpeciesSearch
+              selectedSpecies={selectedSpecies}
+              onSelect={s => { setSelectedSpecies(s); setSelectedHotspot(null) }}
+              onClear={() => { setSelectedSpecies(null); setSpeciesSightings([]) }}
+            />
+            <select
+              style={styles.select}
+              value={daysBack}
+              onChange={e => setDaysBack(Number(e.target.value))}
             >
-              {m === 'rare' ? 'Notable' : 'All Recent'}
-            </button>
-          ))}
-        </div>
-        <SpeciesSearch
-          selectedSpecies={selectedSpecies}
-          onSelect={s => { setSelectedSpecies(s); setSelectedHotspot(null) }}
-          onClear={() => { setSelectedSpecies(null); setSpeciesSightings([]) }}
-        />
-        <select
-          style={styles.select}
-          value={daysBack}
-          onChange={e => setDaysBack(Number(e.target.value))}
-        >
-          <option value={3}>3 days</option>
-          <option value={7}>7 days</option>
-          <option value={14}>14 days</option>
-          <option value={30}>30 days</option>
-        </select>
-        {loading && <span style={styles.loading}>Loading...</span>}
+              <option value={3}>3 days</option>
+              <option value={7}>7 days</option>
+              <option value={14}>14 days</option>
+              <option value={30}>30 days</option>
+            </select>
+            {loading && <span style={styles.loading}>Loading...</span>}
+          </div>
+        )}
       </div>
 
       <SidePanel
