@@ -51,6 +51,7 @@ func main() {
 		r.Get("/api/taxonomy", handlers.NewTaxonomy(eb, c).ServeHTTP)
 		r.Get("/api/recent", handlers.NewRecentObs(eb, c).ServeHTTP)
 		r.Get("/api/recent/species", handlers.NewRecentBySpecies(eb, c).ServeHTTP)
+		r.Get("/api/checklist", handlers.NewChecklist(eb, c).ServeHTTP)
 	})
 
 	// Serve the React SPA for all non-API routes

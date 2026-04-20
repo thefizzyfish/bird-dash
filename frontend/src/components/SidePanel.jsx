@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react'
 import { useBirdPhoto } from '../hooks/useBirdPhoto.js'
 import { useIsMobile } from '../hooks/useIsMobile.js'
+import { fetchChecklist } from '../api/ebird.js'
 
 const s = {
   backBtn: {
@@ -15,11 +17,24 @@ const s = {
   empty: { color: '#475569', fontSize: 13, marginTop: 8 },
   hotspotTitle: { fontSize: 14, fontWeight: 700, marginBottom: 2 },
   hotspotMeta: { fontSize: 12, color: '#64748b', marginBottom: 14 },
+  clickableRow: {
+    marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid #1e293b',
+    cursor: 'pointer', borderRadius: 4,
+  },
 }
 
 function formatDate(obsDt) {
   if (!obsDt) return ''
   return obsDt.split(' ')[0]
+}
+
+function formatDuration(hrs) {
+  if (!hrs) return null
+  const h = Math.floor(hrs)
+  const m = Math.round((hrs - h) * 60)
+  if (h === 0) return `${m}m`
+  if (m === 0) return `${h}h`
+  return `${h}h ${m}m`
 }
 
 function BirdRow({ obs }) {
@@ -44,6 +59,55 @@ function BirdRow({ obs }) {
   )
 }
 
+function ChecklistView({ species, checklist, loading, onBack }) {
+  return (
+    <>
+      <button style={s.backBtn} onClick={onBack}>← Species List</button>
+      <div style={{ ...s.name, marginBottom: 2 }}>{species.comName}</div>
+      <div style={{ ...s.sci, marginBottom: 14 }}>{species.sciName}</div>
+
+      {loading && <p style={s.empty}>Loading checklist…</p>}
+
+      {!loading && checklist && (
+        <>
+          <div style={s.heading}>CHECKLIST</div>
+          <div style={{ ...s.item }}>
+            <div style={s.meta}>
+              <span style={{ color: '#f1f5f9' }}>{checklist.userDisplayName}</span>
+              {checklist.numObservers > 1 && ` + ${checklist.numObservers - 1} others`}
+            </div>
+            <div style={s.meta}>{checklist.obsDt}{checklist.obsTime ? ` at ${checklist.obsTime}` : ''}</div>
+            {formatDuration(checklist.durationHrs) && (
+              <div style={s.meta}>{formatDuration(checklist.durationHrs)}
+                {checklist.effortDistanceKm ? ` · ${checklist.effortDistanceKm.toFixed(1)} km` : ''}
+              </div>
+            )}
+            {checklist.obs && (
+              <div style={s.meta}>{checklist.obs.length} species reported</div>
+            )}
+            {checklist.checklistComments && (
+              <div style={{ ...s.meta, color: '#64748b', marginTop: 6, fontStyle: 'italic' }}>
+                "{checklist.checklistComments}"
+              </div>
+            )}
+            <a
+              href={`https://ebird.org/checklist/${species.subId}`}
+              target="_blank" rel="noreferrer"
+              style={{ ...s.link, display: 'inline-block', marginTop: 8 }}
+            >
+              View full checklist on eBird →
+            </a>
+          </div>
+        </>
+      )}
+
+      {!loading && !checklist && (
+        <p style={s.empty}>Could not load checklist.</p>
+      )}
+    </>
+  )
+}
+
 function PanelFooter() {
   return (
     <div style={{ marginTop: 20, paddingTop: 12, borderTop: '1px solid #1e293b', textAlign: 'center' }}>
@@ -59,6 +123,26 @@ function PanelFooter() {
 }
 
 function PanelContent({ aggregatedObs, selectedHotspot, speciesList, selectedRareLocation, onClose }) {
+  const [activeSpecies, setActiveSpecies] = useState(null)
+  const [checklist, setChecklist] = useState(null)
+  const [checklistLoading, setChecklistLoading] = useState(false)
+
+  // Reset checklist state when hotspot changes
+  useEffect(() => {
+    setActiveSpecies(null)
+    setChecklist(null)
+  }, [selectedHotspot])
+
+  useEffect(() => {
+    if (!activeSpecies?.subId) return
+    setChecklist(null)
+    setChecklistLoading(true)
+    fetchChecklist({ subId: activeSpecies.subId })
+      .then(setChecklist)
+      .catch(console.error)
+      .finally(() => setChecklistLoading(false))
+  }, [activeSpecies])
+
   if (selectedRareLocation) {
     return (
       <>
@@ -88,6 +172,20 @@ function PanelContent({ aggregatedObs, selectedHotspot, speciesList, selectedRar
   }
 
   if (selectedHotspot) {
+    if (activeSpecies) {
+      return (
+        <>
+          <ChecklistView
+            species={activeSpecies}
+            checklist={checklist}
+            loading={checklistLoading}
+            onBack={() => { setActiveSpecies(null); setChecklist(null) }}
+          />
+          <PanelFooter />
+        </>
+      )
+    }
+
     return (
       <>
         <button style={s.backBtn} onClick={onClose}>← All Birds</button>
@@ -102,10 +200,15 @@ function PanelContent({ aggregatedObs, selectedHotspot, speciesList, selectedRar
         {speciesList.length === 0
           ? <p style={s.empty}>No recent sightings</p>
           : speciesList.map((sp, i) => (
-            <div key={i} style={s.item}>
+            <div
+              key={i}
+              style={s.clickableRow}
+              onClick={() => sp.subId && setActiveSpecies(sp)}
+            >
               <div style={s.name}>{sp.comName}</div>
               <div style={s.sci}>{sp.sciName}</div>
               <div style={s.meta}>{formatDate(sp.obsDt)}{sp.howMany ? ` · ${sp.howMany} seen` : ''}</div>
+              {sp.subId && <div style={{ ...s.link, marginTop: 3 }}>Latest checklist →</div>}
             </div>
           ))
         }
@@ -113,6 +216,7 @@ function PanelContent({ aggregatedObs, selectedHotspot, speciesList, selectedRar
       </>
     )
   }
+
   return (
     <>
       <div style={s.heading}>BIRDS ({aggregatedObs.length})</div>

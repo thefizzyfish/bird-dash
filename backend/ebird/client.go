@@ -80,3 +80,7 @@ func (c *Client) RecentObs(ctx context.Context, lat, lng float64, dist, back int
 		lat, lng, dist, back,
 	))
 }
+
+func (c *Client) Checklist(ctx context.Context, subId string) ([]byte, error) {
+	return c.get(ctx, fmt.Sprintf("/product/checklist/view/%s", subId))
+}

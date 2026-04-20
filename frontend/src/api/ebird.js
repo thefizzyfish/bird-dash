@@ -38,3 +38,10 @@ export async function fetchRecentObs({ lat, lng, dist, back }) {
   if (!res.ok) throw new Error(`Failed to fetch recent observations: ${res.status}`)
   return res.json()
 }
+
+export async function fetchChecklist({ subId }) {
+  const params = new URLSearchParams({ subId })
+  const res = await fetch(`/api/checklist?${params}`)
+  if (!res.ok) throw new Error(`Failed to fetch checklist: ${res.status}`)
+  return res.json()
+}
