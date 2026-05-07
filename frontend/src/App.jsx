@@ -11,13 +11,22 @@ const DEFAULT_VIEWPORT = {
   zoom: 10
 }
 
-function getInitialViewport() {
+const VALID_DAYS = [3, 7, 14, 30]
+const VALID_MODES = ['rare', 'all']
+
+function getInitialState() {
   const p = new URLSearchParams(location.search)
   const lat = parseFloat(p.get('lat'))
   const lng = parseFloat(p.get('lng'))
   const zoom = parseFloat(p.get('zoom'))
-  if (!isNaN(lat) && !isNaN(lng) && !isNaN(zoom)) return { latitude: lat, longitude: lng, zoom }
-  return DEFAULT_VIEWPORT
+  const viewport = (!isNaN(lat) && !isNaN(lng) && !isNaN(zoom))
+    ? { latitude: lat, longitude: lng, zoom }
+    : DEFAULT_VIEWPORT
+  const days = parseInt(p.get('days'))
+  const daysBack = VALID_DAYS.includes(days) ? days : 7
+  const modeParam = p.get('mode')
+  const mode = VALID_MODES.includes(modeParam) ? modeParam : 'rare'
+  return { viewport, daysBack, mode }
 }
 
 function distFromZoom(zoom) {
@@ -48,23 +57,31 @@ const styles = {
     background: '#1e293b', color: '#f1f5f9', border: '1px solid #334155',
     borderRadius: 6, padding: '6px 8px', fontSize: 13
   },
-  loading: { color: '#94a3b8', fontSize: 12, padding: '4px 8px' }
+  loading: { color: '#94a3b8', fontSize: 12, padding: '4px 8px' },
+  error: {
+    position: 'fixed', bottom: 16, left: '50%', transform: 'translateX(-50%)',
+    background: '#7f1d1d', color: '#fca5a5', border: '1px solid #b91c1c',
+    borderRadius: 6, padding: '8px 14px', fontSize: 13, zIndex: 100,
+  },
 }
 
+const INITIAL_STATE = getInitialState()
+
 export default function App() {
-  const [viewport, setViewport] = useState(getInitialViewport)
+  const [viewport, setViewport] = useState(INITIAL_STATE.viewport)
   const [notableObs, setNotableObs] = useState([])
   const [hotspots, setHotspots] = useState([])
   const [selectedHotspot, setSelectedHotspot] = useState(null)
   const [speciesList, setSpeciesList] = useState([])
-  const [daysBack, setDaysBack] = useState(7)
-  const [mode, setMode] = useState('rare')  // 'rare' | 'all'
+  const [daysBack, setDaysBack] = useState(INITIAL_STATE.daysBack)
+  const [mode, setMode] = useState(INITIAL_STATE.mode)
   const [loading, setLoading] = useState(false)
   const [selectedSpecies, setSelectedSpecies] = useState(null)
   const [selectedRareLocation, setSelectedRareLocation] = useState(null)
   const [panelOpen, setPanelOpen] = useState(true)
   const [controlsOpen, setControlsOpen] = useState(true)
   const [speciesSightings, setSpeciesSightings] = useState([])
+  const [error, setError] = useState(null)
   const debounceRef = useRef(null)
   const speciesDebounceRef = useRef(null)
 
@@ -82,6 +99,8 @@ export default function App() {
       setHotspots(spots)
     } catch (e) {
       console.error(e)
+      setError('Failed to load data. Check your connection.')
+      setTimeout(() => setError(null), 4000)
     } finally {
       setLoading(false)
     }
@@ -91,7 +110,7 @@ export default function App() {
     clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       const { latitude: lat, longitude: lng, zoom } = viewport
-      history.replaceState(null, '', `?lat=${lat.toFixed(4)}&lng=${lng.toFixed(4)}&zoom=${zoom.toFixed(2)}`)
+      history.replaceState(null, '', `?lat=${lat.toFixed(4)}&lng=${lng.toFixed(4)}&zoom=${zoom.toFixed(2)}&mode=${mode}&days=${daysBack}`)
       loadData(viewport, daysBack, mode)
     }, 500)
     return () => clearTimeout(debounceRef.current)
@@ -271,6 +290,8 @@ export default function App() {
         isOpen={panelOpen}
         onToggle={() => setPanelOpen(o => !o)}
       />
+
+      {error && <div style={styles.error}>{error}</div>}
     </div>
   )
 }
